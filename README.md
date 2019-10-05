@@ -4,8 +4,6 @@ This crate provides a simple command-line tool `img2raw` which takes any support
 
 By default the tool will output the raw pixel data and nothing else, so additional metadata needs to be associated with the output file for use in further applications. However, the tool also supports writing out a simple 16-byte header at the start of the output containing the data width, height, data format and color space. This header can be parsed using the type definitions in this crate. The pixel data immediately follows this header if present.
 
-This crate is `no_std` compatible.
-
     cargo install img2raw
 
 ## License
