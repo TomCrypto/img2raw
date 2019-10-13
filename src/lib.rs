@@ -29,8 +29,8 @@ pub struct Header {
 pub struct ColorSpaceInfo(u32);
 
 impl ColorSpaceInfo {
-    /// Returns the inner color space when it is valid.
-    pub fn as_color_space(self) -> Option<ColorSpace> {
+    /// Returns the inner color space if it is valid.
+    pub fn try_parse(self) -> Option<ColorSpace> {
         ColorSpace::try_from_u32(self.0)
     }
 }
@@ -50,8 +50,8 @@ impl From<ColorSpace> for ColorSpaceInfo {
 pub struct DataFormatInfo(u32);
 
 impl DataFormatInfo {
-    /// Returns the inner data format when it is valid.
-    pub fn as_data_format(self) -> Option<DataFormat> {
+    /// Returns the inner data format if it is valid.
+    pub fn try_parse(self) -> Option<DataFormat> {
         DataFormat::try_from_u32(self.0)
     }
 }
