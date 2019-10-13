@@ -109,6 +109,7 @@ fn run() -> Result<(), Error> {
         DataFormat::RGBA16F => store_rgba16f_pixels(&image, file)?,
         DataFormat::PackedR16F => store_packed_r16f_pixels(&image, file)?,
         DataFormat::RGBE8 => store_rgbe8_pixels(&image, file)?,
+        DataFormat::RGBA8 => store_rgba8_pixels(&image, file)?,
     }
 
     println!(
@@ -389,4 +390,15 @@ fn frexp(s: f64) -> (f64, i32) {
         let exp = lg.floor() + 1.0;
         (s.signum() * x, exp as i32)
     }
+}
+
+fn store_rgba8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+    for pixel in &image.pixels {
+        writer.write_u8((pixel.r.min(1.0).max(0.0) * 255.0) as u8)?;
+        writer.write_u8((pixel.g.min(1.0).max(0.0) * 255.0) as u8)?;
+        writer.write_u8((pixel.b.min(1.0).max(0.0) * 255.0) as u8)?;
+        writer.write_u8((pixel.a.min(1.0).max(0.0) * 255.0) as u8)?;
+    }
+
+    Ok(())
 }
