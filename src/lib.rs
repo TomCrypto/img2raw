@@ -6,11 +6,13 @@
 
 use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::str::FromStr;
+#[cfg(feature = "zerocopy")]
 use zerocopy::{AsBytes, FromBytes};
 
 /// Header optionally prepended to the pixel data.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
 pub struct Header {
     /// The color space of the subsequent pixel data.
     pub color_space: ColorSpaceInfo,
@@ -25,7 +27,8 @@ pub struct Header {
 /// The header might not be valid, so this is an intermediate struct which is
 /// used to catch invalid bit patterns not representable by any enum variant.
 #[repr(transparent)]
-#[derive(AsBytes, Clone, Copy, Debug, Eq, FromBytes, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
 pub struct ColorSpaceInfo(u32);
 
 impl ColorSpaceInfo {
@@ -46,7 +49,8 @@ impl From<ColorSpace> for ColorSpaceInfo {
 /// The header might not be valid, so this is an intermediate struct which is
 /// used to catch invalid bit patterns not representable by any enum variant.
 #[repr(transparent)]
-#[derive(AsBytes, Clone, Copy, Debug, Eq, FromBytes, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
 pub struct DataFormatInfo(u32);
 
 impl DataFormatInfo {

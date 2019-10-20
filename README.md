@@ -1,10 +1,12 @@
 # img2raw
 
-This crate provides a simple command-line tool `img2raw` which takes any supported raster image format (e.g. PNG, JPEG, HDR, ...) and outputs the raw pixel contents in scanline order according to some data format such as RGBA8 or R16F suitable for use in rendering applications. It supports basic color space conversions, but does not detect the source color space automatically.
+This repository provides a simple command-line tool `img2raw` which takes any supported raster image format (e.g. PNG, JPEG, HDR, ...) and outputs the raw pixel contents in scanline order according to some data format such as RGBA8 or R16F suitable for use in rendering applications. It supports basic color space conversions, but does not detect the source color space automatically.
 
 By default the tool will output the raw pixel data and nothing else, so additional metadata needs to be associated with the output file for use in further applications. However, the tool also supports writing out a simple 16-byte header at the start of the output containing the data width, height, data format and color space. This header can be parsed using the type definitions in this crate. The pixel data immediately follows this header if present.
 
-    cargo install img2raw
+The repository is divided into two crates, `img2raw` and `img2raw-tools`. The former exposes type definitions for parsing the generated header, is no-std compatible with an optional zerocopy feature (enabled by default) and is intended for use in applications, while the latter provides the command-line tool and can be installed through cargo.
+
+    cargo install img2raw-tools
 
 ## License
 

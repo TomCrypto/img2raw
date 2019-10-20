@@ -12,7 +12,7 @@ use structopt::StructOpt;
 use zerocopy::AsBytes;
 
 #[derive(Debug, StructOpt)]
-#[structopt(about, author)]
+#[structopt(about, author, name = "img2raw")]
 struct Arguments {
     #[structopt(long, parse(try_from_str = parse_color_space))]
     source_color_space: ColorSpace,

@@ -9,7 +9,8 @@
     ".gitignore": true,
     ".vscode": true,
     "Cargo.lock": true,
-    "target": true
+    "target": true,
+    "tools/target": true
   },
 
   "files.insertFinalNewline": true
