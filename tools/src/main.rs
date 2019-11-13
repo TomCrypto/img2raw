@@ -308,6 +308,10 @@ fn store_packed_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), 
     Ok(())
 }
 
+fn safe_f64_to_f16(x: f64) -> f16 {
+    f16::from_f64(x.max(-65504.0).min(65504.0))
+}
+
 fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
     let row_padding = image.width % 2;
 
@@ -315,7 +319,7 @@ fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error
         for x in 0..image.width {
             let pixel = image.pixels[(y * image.width + x) as usize];
 
-            writer.write_u16::<LE>(f16::from_f64(pixel.r).to_bits())?;
+            writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
         }
 
         for _ in 0..row_padding {
@@ -328,8 +332,8 @@ fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error
 
 fn store_rg16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
     for pixel in &image.pixels {
-        writer.write_u16::<LE>(f16::from_f64(pixel.r).to_bits())?;
-        writer.write_u16::<LE>(f16::from_f64(pixel.g).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.g).to_bits())?;
     }
 
     Ok(())
@@ -337,10 +341,10 @@ fn store_rg16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
 
 fn store_rgba16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
     for pixel in &image.pixels {
-        writer.write_u16::<LE>(f16::from_f64(pixel.r).to_bits())?;
-        writer.write_u16::<LE>(f16::from_f64(pixel.g).to_bits())?;
-        writer.write_u16::<LE>(f16::from_f64(pixel.b).to_bits())?;
-        writer.write_u16::<LE>(f16::from_f64(pixel.a).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.g).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.b).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.a).to_bits())?;
     }
 
     Ok(())
@@ -348,7 +352,7 @@ fn store_rgba16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Er
 
 fn store_packed_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
     for pixel in &image.pixels {
-        writer.write_u16::<LE>(f16::from_f64(pixel.r).to_bits())?;
+        writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
     }
 
     Ok(())
