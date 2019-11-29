@@ -377,7 +377,7 @@ fn store_rgbe8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
             writer.write_u8(r_byte)?;
             writer.write_u8(g_byte)?;
             writer.write_u8(b_byte)?;
-            writer.write_u8((e + 128) as u8)?;
+            writer.write_u8((e + 128).max(0).min(255) as u8)?;
         }
     }
 
