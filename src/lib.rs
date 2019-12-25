@@ -125,4 +125,5 @@ gen_enum!(DataFormat, "Available data formats for the pixel data." => [
     [PackedR16F = 8, "16-bit floating-point, 2-byte row alignment."],
     [RGBE8 = 9, "8-bit RGBE, alpha is exponent, 4-byte row alignment."],
     [RGBA8 = 10, "8-bit fixed-point, 4-byte row alignment."],
+    [BC1 = 11, "BC1 block compression format with no alpha."],
 ]);

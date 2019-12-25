@@ -1,6 +1,6 @@
 [package]
 name = "img2raw-tools"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2018"
 license = "MIT"
 
@@ -34,6 +34,9 @@ path = ".."
 
 [dependencies.rayon]
 version = "1.2"
+
+[dependencies.squish]
+version = "1.0"
 
 [dependencies.structopt]
 version = "0.3"

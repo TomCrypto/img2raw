@@ -5,6 +5,7 @@ use half::f16;
 use image::{guess_format, hdr, load_from_memory, ImageFormat};
 use img2raw::{ColorSpace, DataFormat, Header};
 use rayon::prelude::*;
+use squish::{Algorithm, Format};
 use std::fs::{read, File};
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
@@ -110,6 +111,7 @@ fn run() -> Result<(), Error> {
         DataFormat::PackedR16F => store_packed_r16f_pixels(&image, file)?,
         DataFormat::RGBE8 => store_rgbe8_pixels(&image, file)?,
         DataFormat::RGBA8 => store_rgba8_pixels(&image, file)?,
+        DataFormat::BC1 => store_bc1_pixels(&image, file)?,
     }
 
     println!(
@@ -405,4 +407,36 @@ fn store_rgba8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
     }
 
     Ok(())
+}
+
+fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+    if image.width % 4 != 0 || image.height % 4 != 0 {
+        bail!("BC1: image dimensions must be a multiple of 4");
+    }
+
+    let mut rgba = Vec::with_capacity(image.width as usize * image.height as usize * 4);
+
+    for pixel in &image.pixels {
+        rgba.push((pixel.r.min(1.0).max(0.0) * 255.0) as u8);
+        rgba.push((pixel.g.min(1.0).max(0.0) * 255.0) as u8);
+        rgba.push((pixel.b.min(1.0).max(0.0) * 255.0) as u8);
+        rgba.push(255);
+    }
+
+    let mut compressed =
+        vec![0; Format::Bc1.compressed_size(image.width as usize, image.height as usize)];
+
+    Format::Bc1.compress(
+        &rgba,
+        image.width as usize,
+        image.height as usize,
+        squish::Params {
+            algorithm: Algorithm::IterativeClusterFit,
+            weights: squish::COLOUR_WEIGHTS_PERCEPTUAL,
+            weigh_colour_by_alpha: false,
+        },
+        &mut compressed,
+    );
+
+    Ok(writer.write_all(&compressed)?)
 }

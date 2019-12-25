@@ -1,6 +1,6 @@
 # img2raw
 
-This repository provides a simple command-line tool `img2raw` which takes any supported raster image format (e.g. PNG, JPEG, HDR, ...) and outputs the raw pixel contents in scanline order according to some data format such as RGBA8 or R16F suitable for use in rendering applications. It supports basic color space conversions, but does not detect the source color space automatically.
+This repository provides a simple command-line tool `img2raw` which takes any supported raster image format (e.g. PNG, JPEG, HDR, ...) and outputs the raw pixel contents in scanline order according to some data format such as RGBA8 or R16F suitable for use in rendering applications. It supports basic color space conversions, but does not detect the source color space automatically. Storage of mip levels is not directly supported at this time.
 
 By default the tool will output the raw pixel data and nothing else, so additional metadata needs to be associated with the output file for use in further applications. However, the tool also supports writing out a simple 16-byte header at the start of the output containing the data width, height, data format and color space. This header can be parsed using the type definitions in this crate. The pixel data immediately follows this header if present.
 
@@ -20,19 +20,20 @@ The existence of this tool is motivated by me often needing to convert external 
 
 Below is a table of all currently supported formats, though adding more is easy. Most formats have a 4-byte row alignment for compatibility with common graphics APIs, but some (when applicable) have a "packed" variant where padding bytes are never inserted at the end of each row. The "RGBA" notation refers only to the abstract channels the pixel data is contained in; the data may not be in an RGB color space, and may not even be a color, depending on the intended usage and target application.
 
-| Data format  | Channels |  Component data type   |  Range   | Row alignment | Row padding  | Notes                                           |
-| :----------- | :------- | :--------------------: | :------: | :------------ | :----------- | :---------------------------------------------- |
-| `R32F`       | `R`      | 32-bit floating-point  | (-∞, +∞) | 4-byte        | Never        |                                                 |
-| `RG32F`      | `RG`     | 32-bit floating-point  | (-∞, +∞) | 4-byte        | Never        |                                                 |
-| `RGBA32F`    | `RGBA`   | 32-bit floating-point  | (-∞, +∞) | 4-byte        | Never        |                                                 |
-| `R16F`       | `R`      | 16-bit floating-point  | (-∞, +∞) | 4-byte        | 0 or 2 bytes |                                                 |
-| `PackedR16F` | `R`      | 16-bit floating-point  | (-∞, +∞) | 2-byte        | Never        | Packed variant of `R16F`.                       |
-| `RG16F`      | `RG`     | 16-bit floating-point  | (-∞, +∞) | 4-byte        | Never        |                                                 |
-| `RGBA16F`    | `RGBA`   | 16-bit floating-point  | (-∞, +∞) | 4-byte        | Never        |                                                 |
-| `R8`         | `R`      |   8-bit fixed-point    |  [0, 1]  | 4-byte        | 0 to 3 bytes |                                                 |
-| `RGBA8`      | `RGBA`   |   8-bit fixed-point    |  [0, 1]  | 4-byte        | Never        |                                                 |
-| `PackedR8`   | `R`      |   8-bit fixed-point    |  [0, 1]  | 1-byte        | Never        | Packed variant of `R8`.                         |
-| `RGBE8`      | `RGBA`   | 8-bit special encoding | (0, +∞)  | 4-byte        | Never        | RGBE encoding, alpha channel contains exponent. |
+| Data format  | Channels |  Component data type  |  Range   | Row alignment | Row padding  | Notes                                           |
+| :----------- | :------- | :-------------------: | :------: | :------------ | :----------- | :---------------------------------------------- |
+| `R32F`       | `R`      | 32-bit floating-point | (-∞, +∞) | 4-byte        | Never        |                                                 |
+| `RG32F`      | `RG`     | 32-bit floating-point | (-∞, +∞) | 4-byte        | Never        |                                                 |
+| `RGBA32F`    | `RGBA`   | 32-bit floating-point | (-∞, +∞) | 4-byte        | Never        |                                                 |
+| `R16F`       | `R`      | 16-bit floating-point | (-∞, +∞) | 4-byte        | 0 or 2 bytes |                                                 |
+| `PackedR16F` | `R`      | 16-bit floating-point | (-∞, +∞) | 2-byte        | Never        | Packed variant of `R16F`.                       |
+| `RG16F`      | `RG`     | 16-bit floating-point | (-∞, +∞) | 4-byte        | Never        |                                                 |
+| `RGBA16F`    | `RGBA`   | 16-bit floating-point | (-∞, +∞) | 4-byte        | Never        |                                                 |
+| `R8`         | `R`      |   8-bit fixed-point   |  [0, 1]  | 4-byte        | 0 to 3 bytes |                                                 |
+| `RGBA8`      | `RGBA`   |   8-bit fixed-point   |  [0, 1]  | 4-byte        | Never        |                                                 |
+| `PackedR8`   | `R`      |   8-bit fixed-point   |  [0, 1]  | 1-byte        | Never        | Packed variant of `R8`.                         |
+| `RGBE8`      | `RGBA`   | 8-bit shared exponent | (0, +∞)  | 4-byte        | Never        | RGBE encoding, alpha channel contains exponent. |
+| `BC1`        | `RGB`    |  (block-compressed)   |  [0, 1]  | N/A           | N/A          | Image dimensions should be a multiple of 4.     |
 
 Currently, the source pixel data is silently clamped to the output format's range, and no attention is paid to floating-point infinities or NaNs. Warnings may be logged in a future version.
 
