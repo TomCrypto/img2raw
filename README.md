@@ -34,6 +34,7 @@ Below is a table of all currently supported formats, though adding more is easy.
 | `PackedR8`   | `R`      |   8-bit fixed-point   |  [0, 1]  | 1-byte        | Never        | Packed variant of `R8`.                         |
 | `RGBE8`      | `RGBA`   | 8-bit shared exponent | (0, +∞)  | 4-byte        | Never        | RGBE encoding, alpha channel contains exponent. |
 | `BC1`        | `RGB`    |  (block-compressed)   |  [0, 1]  | N/A           | N/A          | Image dimensions should be a multiple of 4.     |
+| `RG8`        | `RG`     |   8-bit fixed-point   |  [0, 1]  | 4-byte        | 0 or 2 bytes |                                                 |
 
 Currently, the source pixel data is silently clamped to the output format's range, and no attention is paid to floating-point infinities or NaNs. Warnings may be logged in a future version.
 

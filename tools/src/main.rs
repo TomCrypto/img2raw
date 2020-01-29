@@ -112,6 +112,7 @@ fn run() -> Result<(), Error> {
         DataFormat::RGBE8 => store_rgbe8_pixels(&image, file)?,
         DataFormat::RGBA8 => store_rgba8_pixels(&image, file)?,
         DataFormat::BC1 => store_bc1_pixels(&image, file)?,
+        DataFormat::RG8 => store_rg8_pixels(&image, file)?,
     }
 
     println!(
@@ -439,4 +440,23 @@ fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error>
     );
 
     Ok(writer.write_all(&compressed)?)
+}
+
+fn store_rg8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+    let row_padding = (image.width % 2) * 2;
+
+    for y in 0..image.height {
+        for x in 0..image.width {
+            let pixel = image.pixels[(y * image.width + x) as usize];
+
+            writer.write_u8((pixel.r.min(1.0).max(0.0) * 255.0) as u8)?;
+            writer.write_u8((pixel.g.min(1.0).max(0.0) * 255.0) as u8)?;
+        }
+
+        for _ in 0..row_padding {
+            writer.write_u8(0)?;
+        }
+    }
+
+    Ok(())
 }

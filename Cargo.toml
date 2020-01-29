@@ -1,6 +1,6 @@
 [package]
 name = "img2raw"
-version = "0.3.4"
+version = "0.4.0"
 edition = "2018"
 license = "MIT"
 
@@ -9,6 +9,7 @@ authors = ["Thomas Bénéteau <thomas@bitwise.me>"]
 description = "Type definitions for img2raw headers"
 categories = ["multimedia::images", "no-std"]
 readme = "README.md"
+exclude = ["tools"]
 
 [dependencies.zerocopy]
 version = "0.2"

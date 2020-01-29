@@ -223,21 +223,21 @@ dependencies = [
 
 [[package]]
 name = "img2raw"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "zerocopy 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "img2raw-tools"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "exitfailure 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "half 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "img2raw 0.3.4",
+ "img2raw 0.4.0",
  "rayon 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "squish 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
