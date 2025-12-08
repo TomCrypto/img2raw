@@ -1,16 +1,15 @@
+use anyhow::{bail, Result};
+use bytemuck::{AnyBitPattern, NoUninit};
 use byteorder::{WriteBytesExt, LE};
-use exitfailure::ExitFailure;
-use failure::{bail, Error};
 use half::f16;
-use image::{guess_format, hdr, load_from_memory, ImageFormat};
+use image::{codecs::hdr, guess_format, load_from_memory, ImageDecoder, ImageFormat};
 use img2raw::{ColorSpace, DataFormat, Header};
 use rayon::prelude::*;
-use squish::{Algorithm, Format};
 use std::fs::{read, File};
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use structopt::StructOpt;
-use zerocopy::AsBytes;
+use texpresso::{Algorithm, Format};
 
 #[derive(Debug, StructOpt)]
 #[structopt(about, author, name = "img2raw")]
@@ -34,7 +33,7 @@ struct Arguments {
     header: bool,
 }
 
-fn parse_color_space(input: &str) -> Result<ColorSpace, Error> {
+fn parse_color_space(input: &str) -> Result<ColorSpace> {
     if let Ok(color_space) = input.parse() {
         Ok(color_space)
     } else {
@@ -42,7 +41,7 @@ fn parse_color_space(input: &str) -> Result<ColorSpace, Error> {
     }
 }
 
-fn parse_data_format(input: &str) -> Result<DataFormat, Error> {
+fn parse_data_format(input: &str) -> Result<DataFormat> {
     if let Ok(data_format) = input.parse() {
         Ok(data_format)
     } else {
@@ -50,22 +49,18 @@ fn parse_data_format(input: &str) -> Result<DataFormat, Error> {
     }
 }
 
-fn main() -> Result<(), ExitFailure> {
-    Ok(run()?)
-}
-
-fn run() -> Result<(), Error> {
+fn main() -> Result<()> {
     let args = Arguments::from_args();
 
     let bytes = read(args.source_file)?;
 
     let mut image = match guess_format(&bytes)? {
-        ImageFormat::HDR => load_hdr_image(&bytes)?,
-        ImageFormat::PNG => load_dynamic_image(&bytes)?,
-        ImageFormat::JPEG => load_dynamic_image(&bytes)?,
-        ImageFormat::PNM => load_dynamic_image(&bytes)?,
-        ImageFormat::BMP => load_dynamic_image(&bytes)?,
-        ImageFormat::TIFF => load_dynamic_image(&bytes)?,
+        ImageFormat::Hdr => load_hdr_image(&bytes)?,
+        ImageFormat::Png => load_dynamic_image(&bytes)?,
+        ImageFormat::Jpeg => load_dynamic_image(&bytes)?,
+        ImageFormat::Pnm => load_dynamic_image(&bytes)?,
+        ImageFormat::Bmp => load_dynamic_image(&bytes)?,
+        ImageFormat::Tiff => load_dynamic_image(&bytes)?,
         unsupported => bail!("unsupported file type: {:?}", unsupported),
     };
 
@@ -96,7 +91,7 @@ fn run() -> Result<(), Error> {
             dimensions: [image.width, image.height],
         };
 
-        file.write_all(header.as_bytes())?;
+        file.write_all(bytemuck::bytes_of(&header))?;
     }
 
     match args.output_data_format {
@@ -125,8 +120,8 @@ fn run() -> Result<(), Error> {
 
 // Input
 
-fn load_dynamic_image(bytes: &[u8]) -> Result<Image, Error> {
-    let data = load_from_memory(bytes)?.to_rgba();
+fn load_dynamic_image(bytes: &[u8]) -> Result<Image> {
+    let data = load_from_memory(bytes)?.to_rgba8();
 
     let mut image = Image::new(data.width(), data.height());
 
@@ -140,12 +135,18 @@ fn load_dynamic_image(bytes: &[u8]) -> Result<Image, Error> {
     Ok(image)
 }
 
-fn load_hdr_image(bytes: &[u8]) -> Result<Image, Error> {
-    let loaded = hdr::HDRDecoder::new(bytes)?;
+fn load_hdr_image(bytes: &[u8]) -> Result<Image> {
+    let loaded = hdr::HdrDecoder::new(bytes)?;
 
     let metadata = loaded.metadata();
 
-    let data = loaded.read_image_hdr()?;
+    #[derive(Clone, Copy, Debug, AnyBitPattern, NoUninit)]
+    #[repr(transparent)]
+    struct Rgb([f32; 3]);
+
+    let mut data = vec![Rgb([0.0, 0.0, 0.0]); metadata.width as usize * metadata.height as usize];
+
+    loaded.read_image(bytemuck::cast_slice_mut(&mut data))?;
 
     let mut image = Image::new(metadata.width, metadata.height);
 
@@ -257,7 +258,7 @@ impl Pixel {
 
 // Output
 
-fn store_r32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_r32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_f32::<LE>(pixel.r as f32)?;
     }
@@ -265,7 +266,7 @@ fn store_r32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error
     Ok(())
 }
 
-fn store_rg32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rg32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_f32::<LE>(pixel.r as f32)?;
         writer.write_f32::<LE>(pixel.g as f32)?;
@@ -274,7 +275,7 @@ fn store_rg32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
     Ok(())
 }
 
-fn store_rgba32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rgba32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_f32::<LE>(pixel.r as f32)?;
         writer.write_f32::<LE>(pixel.g as f32)?;
@@ -285,7 +286,7 @@ fn store_rgba32f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Er
     Ok(())
 }
 
-fn store_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     let row_padding = (4 - image.width % 4) % 4;
 
     for y in 0..image.height {
@@ -303,7 +304,7 @@ fn store_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> 
     Ok(())
 }
 
-fn store_packed_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_packed_r8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_u8((pixel.r.min(1.0).max(0.0) * 255.0) as u8)?;
     }
@@ -315,7 +316,7 @@ fn safe_f64_to_f16(x: f64) -> f16 {
     f16::from_f64(x.max(-65504.0).min(65504.0))
 }
 
-fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     let row_padding = image.width % 2;
 
     for y in 0..image.height {
@@ -333,7 +334,7 @@ fn store_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error
     Ok(())
 }
 
-fn store_rg16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rg16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
         writer.write_u16::<LE>(safe_f64_to_f16(pixel.g).to_bits())?;
@@ -342,7 +343,7 @@ fn store_rg16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
     Ok(())
 }
 
-fn store_rgba16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rgba16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
         writer.write_u16::<LE>(safe_f64_to_f16(pixel.g).to_bits())?;
@@ -353,7 +354,7 @@ fn store_rgba16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Er
     Ok(())
 }
 
-fn store_packed_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_packed_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_u16::<LE>(safe_f64_to_f16(pixel.r).to_bits())?;
     }
@@ -361,7 +362,7 @@ fn store_packed_r16f_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()
     Ok(())
 }
 
-fn store_rgbe8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rgbe8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         let v = pixel.r.max(pixel.g).max(pixel.b);
 
@@ -399,7 +400,7 @@ fn frexp(s: f64) -> (f64, i32) {
     }
 }
 
-fn store_rgba8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rgba8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     for pixel in &image.pixels {
         writer.write_u8((pixel.r.min(1.0).max(0.0) * 255.0) as u8)?;
         writer.write_u8((pixel.g.min(1.0).max(0.0) * 255.0) as u8)?;
@@ -410,7 +411,7 @@ fn store_rgba8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Erro
     Ok(())
 }
 
-fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     if image.width % 4 != 0 || image.height % 4 != 0 {
         bail!("BC1: image dimensions must be a multiple of 4");
     }
@@ -431,9 +432,9 @@ fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error>
         &rgba,
         image.width as usize,
         image.height as usize,
-        squish::Params {
+        texpresso::Params {
             algorithm: Algorithm::IterativeClusterFit,
-            weights: squish::COLOUR_WEIGHTS_PERCEPTUAL,
+            weights: texpresso::COLOUR_WEIGHTS_PERCEPTUAL,
             weigh_colour_by_alpha: false,
         },
         &mut compressed,
@@ -442,7 +443,7 @@ fn store_bc1_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error>
     Ok(writer.write_all(&compressed)?)
 }
 
-fn store_rg8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<(), Error> {
+fn store_rg8_pixels<W: Write>(image: &Image, mut writer: W) -> Result<()> {
     let row_padding = (image.width % 2) * 2;
 
     for y in 0..image.height {

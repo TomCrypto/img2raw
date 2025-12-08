@@ -4,15 +4,15 @@
 #![forbid(unsafe_code)]
 #![no_std]
 
+#[cfg(feature = "bytemuck")]
+use bytemuck::{AnyBitPattern, NoUninit};
 use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::str::FromStr;
-#[cfg(feature = "zerocopy")]
-use zerocopy::{AsBytes, FromBytes};
 
 /// Header optionally prepended to the pixel data.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
+#[cfg_attr(feature = "bytemuck", derive(AnyBitPattern, NoUninit))]
 pub struct Header {
     /// The color space of the subsequent pixel data.
     pub color_space: ColorSpaceInfo,
@@ -28,7 +28,7 @@ pub struct Header {
 /// used to catch invalid bit patterns not representable by any enum variant.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
+#[cfg_attr(feature = "bytemuck", derive(AnyBitPattern, NoUninit))]
 pub struct ColorSpaceInfo(u32);
 
 impl ColorSpaceInfo {
@@ -50,7 +50,7 @@ impl From<ColorSpace> for ColorSpaceInfo {
 /// used to catch invalid bit patterns not representable by any enum variant.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "zerocopy", derive(AsBytes, FromBytes))]
+#[cfg_attr(feature = "bytemuck", derive(AnyBitPattern, NoUninit))]
 pub struct DataFormatInfo(u32);
 
 impl DataFormatInfo {
